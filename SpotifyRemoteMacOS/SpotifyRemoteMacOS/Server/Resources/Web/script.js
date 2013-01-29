@@ -8,28 +8,9 @@ window.log = function f(){ log.history = log.history || []; log.history.push(arg
 */
 
 var updateTimeout,
-    timeout = 30000,
-    currentState,
-    currentTime,
-    duration,
-    allowForce,
-    secondTimeout,
-    secondTimeoutTime = 1000;
+timeout = 30000,
+currentstate;
 
-function everySecond(){
-    if(currentTime != undefined && currentState == 'playing'){
-        // Need to update the current time
-        if(currentTime / duration <= 1){
-            $('#playtime_slider').slider( "option", "value", currentTime / duration * 100);
-            setTimeDisplay('#currtime', currentTime);
-            currentTime++;
-        } else {
-            update();
-        }
-    }
-    clearTimeout(secondTimeout);
-    secondTimeout = setTimeout(everySecond, secondTimeoutTime);
-}
 
 function deduplicate(songlist){
     var deduplist = new Array();
@@ -65,25 +46,11 @@ function deduplicate(songlist){
     return deduplist;
 }
 
-function setTimeDisplay(container, seconds){
-    var minutes = Math.floor(seconds / 60);
-    seconds = seconds % 60;
-    if(isNaN(minutes) || isNaN(seconds)){
-        $(container).text("0:00");
-    } else {
-        $(container).text(minutes + ":" + (seconds < 10 ? '0' : '') + seconds);
-    }
-}
-
 function update() {
   $.getJSON('/status', function(data) {
     $('#controls').removeClass();
-    currentState = data.state;
-    currentTime = data.position;
-    duration = data.duration;
             
-    setTimeDisplay('#totaltime', duration);
-    setTimeDisplay('#currtime', currentTime);
+            currentState = data.state;
             
     allowForce = data['allow_force'];
     switch(currentState) {
@@ -94,19 +61,9 @@ function update() {
         $('#playpause').attr('class', 'play');
         break;
     }
-
-    switch(data.shuffle){
-        case true:
-            $('#shuffle').attr('class','shuffleon');
-        break;
-        default:
-            $('#shuffle').attr('class','shuffleoff');
-        break;
-    }
     
     if(currentState == 'off' || allowForce == false) {
       $('#controls').attr('class', 'off');
-      $('#playtime_slider').slider('disable');
     }
     $('.track_cover').attr('src', data.cover);
     $('.now_playing').text(data['now_playing']);
@@ -148,14 +105,6 @@ var play_search_track = function(id){
 }
 
 $(document).ready(function() {
-  // Set up the play time slider
-  $('#playtime_slider').slider();
-  $('#playtime_slider').on( "slidestop", function( event, ui ) {
-    $.get('updatetime/' + Math.floor(ui.value / 100 * duration), function(data){
-      update();
-    });
-  });
-                  
   $('#controls a').click(function(e) {
     e.preventDefault();
     if(!allowForce) {
@@ -211,7 +160,5 @@ $(document).ready(function() {
 
   update();
   updateTimeout = setTimeout(update, timeout);
-  everySecond();
-  secondTimeout = setTimeout(everySecond, secondTimeoutTime);
   dropTrackSetup();
 });
